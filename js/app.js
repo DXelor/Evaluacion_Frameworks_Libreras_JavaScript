@@ -14,11 +14,12 @@ $(document).ready(function(){
     //************************************************
     //***********************CREAR ELEMENTOS****************************
 
-    var intervalo=0;  //variable de tiempo para funcion de desplazamiento
-    var nDulces=0;  //variable de tiempo para nuevos dulces
+    var intervalo=0;  //variable de intervalos para desplazamiento
+    var nDulces=0;  //variable para nuevos dulces
     var lencol=["","","","","","",""];
     var lenres=["","","","","","",""];
     var contador=0;
+    var maximo=0;
 
 
     var i=0;
@@ -47,10 +48,12 @@ $(document).ready(function(){
         $(this).html("REINICIAR") //cabia el texto del boton INICIAR
         clearInterval(intervalo);
         clearInterval(eliminar);
-        clearInterval(tiempo);
         clearInterval(nDulces);
+        clearInterval(tiempo);
+        
         minutos=2;
         segundos=0;
+
         _borrartotal()
         intervalo=setInterval(function(){_dulces()},300)
         tiempo=setInterval(function(){_tiempo()},1000)
@@ -67,7 +70,7 @@ $(document).ready(function(){
                 clearInterval(nDulces);
                 clearInterval(intervalo);
                 clearInterval(tiempo);
-                $( ".panel-tablero" ).hide("drop","slow",callback);
+                $( ".panel-tablero" ).hide("drop","slow",_finJuego);
                 $( ".time" ).hide();
             }
             segundos=59;
@@ -75,7 +78,8 @@ $(document).ready(function(){
         }
         $("#timer").html("0"+minutos+":"+segundos)
     }
-    function callback(){
+    //***************************************************************************
+    function _finJuego(){
         $( ".panel-score" ).animate({width:'100%'},4000);
     }
 
@@ -97,15 +101,15 @@ $(document).ready(function(){
         }
         if(i==8){
             clearInterval(intervalo);   //dejan de aparecer mas dulces
-            eliminar=setInterval(function(){_combo()},150)  //activar funcion eliminarhorver
+            eliminar=setInterval(function(){_combo()},150)  //activar Combo
         }
     }
 
     //****************************elimina mas de 3 dulces**********************************
     function _combo(){
         matriz=0;
-        dulcesH=_horizontal()  //funcion busqueda dulces _horizontal
-        dulcesV=_vertical()    //funcion buscar dulces _vertical
+        dulcesH=_horizontal()  //funcion dulces horizontal
+        dulcesV=_vertical()    //funcion dulces vertical
 
         for(var c=1;c<8;c++){
             matriz=matriz+$(".col-"+c).children().length;
@@ -114,11 +118,11 @@ $(document).ready(function(){
         if(dulcesH==1 || dulcesV==1){
             $(".elemento").draggable({ disabled: true });
             $("div[class^='col']").css("justify-content","flex-end")
-            $(".activo").hide("pulsate",1000,function(){//animacion
+            $(".activo").hide("pulsate",500,function(){//animacion pulso
             var puntostmp=$(".activo").length;
             $(".activo").remove("img")
             puntos=puntos+puntostmp;
-            $("#score-text").html(puntos)  //Cambiar puntuacion
+            $("#score-text").html(puntos)  //cambia el score del DOM por el valor de puntos
             })
         }
 
@@ -126,49 +130,59 @@ $(document).ready(function(){
             clearInterval(eliminar);
             bDulce=0;
             nDulces=setInterval(function(){
-                _nuevosDulces()  //Funcion completar nuevos dulces
+                _nuevosDulces()  //rellena con nuevos dulces
             },500)
         }
-        if(dulcesH==0 && dulcesV==0 && matriz==49)
-        {
+        if(dulcesH==0 && dulcesV==0 && matriz==49){
             $(".elemento").draggable({
-            disabled: false,
-            containment: ".panel-tablero",
-            revert: true,
-            revertDuration: 0,
-            snap: ".elemento",
-            snapMode: "inner",
-            snapTolerance: 40,
-            start: function(event, ui){
-                movimientos=movimientos+1;
-                $("#movimientos-text").html(movimientos)
-            }
+                disabled: false,
+                containment: ".panel-tablero",
+                revert: true,
+                revertDuration: 0,
+                snap: ".elemento",
+                snapMode: "inner",
+                snapTolerance: 40,
+                start: function(event, ui){
+                    movimientos=movimientos+1;
+                    $("#movimientos-text").html(movimientos)
+                }
             });
         }
 
         $(".elemento").droppable({
             drop: function (event, ui) {
-            var dropped = ui.draggable;
-            var droppedOn = this;
-            espera=0;
-            do{
-                espera=dropped.swap($(droppedOn));
-            }while(espera==0)
-            dulcesH=_horizontal()  //funcion busqueda dulces _horizontal
-            dulcesV=_vertical()    //funcion buscar dulces _vertical
-            if(dulcesH==0 && dulcesV==0)
-            {
-                dropped.swap($(droppedOn));
-            }
-            if(dulcesH==1 || dulcesV==1)
-            {
-                clearInterval(nDulces);
-                clearInterval(eliminar);   //desactivar funcion desplazamiento()
-                eliminar=setInterval(function(){_combo()},150)  //activar funcion eliminarhorver
-            }
+                var dropped = ui.draggable;
+                var droppedOn = this;
+                espera=0;
+                
+                do{
+                    espera=dropped.swap($(droppedOn));
+                }while(espera==0)
+                dulcesH=_horizontal()  //buscar dulces horizontal
+                dulcesV=_vertical()    //buscar dulces vertical
+                if(dulcesH==0 && dulcesV==0){
+                    dropped.swap($(droppedOn));
+                }
+                if(dulcesH==1 || dulcesV==1){
+                    clearInterval(nDulces);
+                    clearInterval(eliminar);
+                    eliminar=setInterval(function(){_combo()},150)  //activar combo
+                }
             },
         });
     }
+
+    //***********************Funcion intercambio de dulces**********************
+    jQuery.fn.swap = function(b){
+        b = jQuery(b)[0];//segundo item
+        var a = this[0];//primer item
+        var t = a.parentNode.insertBefore(document.createTextNode(''), a);//reinicia variable a
+        b.parentNode.insertBefore(a, b);
+        t.parentNode.insertBefore(b, t);
+        t.parentNode.removeChild(t);
+        console.log(a,b);
+        return this;
+    };
 
     //*****************Funcion de borrado********************
     function _borrartotal(){
@@ -177,55 +191,7 @@ $(document).ready(function(){
         }
     }
 
-    //------------------------------------------------------------------------------
-    //----------funcion de busqueda horizontal de dulces----------------------------
-    function _horizontal(){
-        var findH=0;
-        for(var e=1;e<8;e++){//elementos||filas
-            for(var c=1;c<6;c++){//columnas
-                var res1=$(".col-"+c).children("img:nth-last-child("+e+")").attr("src")
-                var res2=$(".col-"+(c+1)).children("img:nth-last-child("+e+")").attr("src")
-                var res3=$(".col-"+(c+2)).children("img:nth-last-child("+e+")").attr("src")
-                if((res1==res2) && (res2==res3) && (res1!=null) && (res2!=null) && (res3!=null)){
-                    $(".col-"+c).children("img:nth-last-child("+(e)+")").attr("class","elemento activo")
-                    $(".col-"+(c+1)).children("img:nth-last-child("+(e)+")").attr("class","elemento activo")
-                    $(".col-"+(c+2)).children("img:nth-last-child("+(e)+")").attr("class","elemento activo")
-                    findH=1;
-                }
-            }
-        }
-        return findH;
-    }
-    function _vertical(){
-        var findV=0;
-        for(var f=1;f<6;f++){//filas||elementos
-            for(var c=1;c<8;c++){//columnas
-                var res1=$(".col-"+c).children("img:nth-child("+f+")").attr("src")
-                var res2=$(".col-"+c).children("img:nth-child("+(f+1)+")").attr("src")
-                var res3=$(".col-"+c).children("img:nth-child("+(f+2)+")").attr("src")
-                if((res1==res2) && (res2==res3) && (res1!=null) && (res2!=null) && (res3!=null)){
-                    $(".col-"+c).children("img:nth-child("+(f)+")").attr("class","elemento activo")
-                    $(".col-"+c).children("img:nth-child("+(f+1)+")").attr("class","elemento activo")
-                    $(".col-"+c).children("img:nth-child("+(f+2)+")").attr("class","elemento activo")
-                    findV=1;
-                }
-            }
-        }
-        return findV;
-    }
-
-    //***********************Funcion intercambio de dulces**********************
-    jQuery.fn.swap = function(b){
-        b = jQuery(b)[0];
-        var a = this[0];
-        var t = a.parentNode.insertBefore(document.createTextNode(''), a);
-        b.parentNode.insertBefore(a, b);
-        t.parentNode.insertBefore(b, t);
-        t.parentNode.removeChild(t);
-        return this;
-    };
-
-    //*********************** */Funcion de nuevos dulces****************
+    //***********************Funcion nuevos dulces****************
     function _nuevosDulces(){
         $(".elemento").draggable({ disabled: true });
         $("div[class^='col']").css("justify-content","flex-start")
@@ -269,4 +235,40 @@ $(document).ready(function(){
         }
         contador=contador-1;
     }
+        //*****************************************************************************
+        //*********************busqueda horizontal y vertical de dulces****************
+        function _horizontal(){
+            var findH=0;
+            for(var e=1;e<8;e++){//elementos||filas
+                for(var c=1;c<6;c++){//columnas
+                    var res1=$(".col-"+c).children("img:nth-last-child("+e+")").attr("src")
+                    var res2=$(".col-"+(c+1)).children("img:nth-last-child("+e+")").attr("src")
+                    var res3=$(".col-"+(c+2)).children("img:nth-last-child("+e+")").attr("src")
+                    if((res1==res2) && (res2==res3) && (res1!=null) && (res2!=null) && (res3!=null)){
+                        $(".col-"+c).children("img:nth-last-child("+(e)+")").attr("class","elemento activo")
+                        $(".col-"+(c+1)).children("img:nth-last-child("+(e)+")").attr("class","elemento activo")
+                        $(".col-"+(c+2)).children("img:nth-last-child("+(e)+")").attr("class","elemento activo")
+                        findH=1;
+                    }
+                }
+            }
+            return findH;
+        }
+        function _vertical(){
+            var findV=0;
+            for(var f=1;f<6;f++){//filas||elementos
+                for(var c=1;c<8;c++){//columnas
+                    var res1=$(".col-"+c).children("img:nth-child("+f+")").attr("src")
+                    var res2=$(".col-"+c).children("img:nth-child("+(f+1)+")").attr("src")
+                    var res3=$(".col-"+c).children("img:nth-child("+(f+2)+")").attr("src")
+                    if((res1==res2) && (res2==res3) && (res1!=null) && (res2!=null) && (res3!=null)){
+                        $(".col-"+c).children("img:nth-child("+(f)+")").attr("class","elemento activo")
+                        $(".col-"+c).children("img:nth-child("+(f+1)+")").attr("class","elemento activo")
+                        $(".col-"+c).children("img:nth-child("+(f+2)+")").attr("class","elemento activo")
+                        findV=1;
+                    }
+                }
+            }
+            return findV;
+        }
 });
